@@ -1,2 +1,193 @@
-# Snake-game
-A simple Snake Game built using HTML, CSS, and JavaScript. Features smooth controls, score tracking, and an interactive gaming experience.
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snake – Made by Arafat Khan</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3e9ff;--board:#e4d3fb;--ink:#2b1b52;--snake:#5b2fc9;--head:#3a1a94;--food:#ff5a7a;--btn:#2b1b52;--btnink:#fff;--ovl:rgba(243,233,255,.9);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:'Fredoka',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.bar{display:flex;justify-content:space-between;align-items:baseline;width:min(92vw,420px)}
+h1{font-size:28px;margin:0;font-weight:700}
+.sc{font-size:17px;font-weight:500}
+.sc b{font-size:22px}
+.wrap{position:relative;width:min(92vw,420px)}
+canvas{width:100%;aspect-ratio:1;display:block;background:var(--board);border-radius:18px}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--ovl);border-radius:18px;text-align:center;padding:12px}
+.ov h2{margin:0;font-size:26px}
+.ov p{margin:0;font-size:15px}
+.opts{display:flex;flex-direction:column;gap:6px;align-items:center}
+.row{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+.row span{font-size:14px;font-weight:500;width:48px;text-align:right}
+.hide{display:none}
+.credit{margin:0;font-size:15px;font-weight:500;opacity:.8}
+button{font-family:inherit;font-weight:700;font-size:18px;border:0;border-radius:14px;background:var(--btn);color:var(--btnink);padding:12px 26px;cursor:pointer}
+button:focus-visible{outline:3px solid var(--food);outline-offset:3px}
+.chip{font-size:14px;padding:6px 12px;border-radius:10px;background:transparent;color:var(--ink);border:2px solid var(--ink);opacity:.6}
+.chip.on{background:var(--btn);color:var(--btnink);opacity:1}
+.tools{display:flex;gap:8px;width:min(92vw,420px);justify-content:center}
+.tools button{font-size:15px;padding:8px 14px}
+.pad{display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,50px);gap:8px}
+.pad button{padding:0;font-size:22px}
+.pad .u{grid-column:2}.pad .l{grid-row:2;grid-column:1}.pad .d{grid-row:2;grid-column:2}.pad .r{grid-row:2;grid-column:3}
+@media (hover:hover) and (pointer:fine){.pad{display:none}}
+</style>
+</head>
+<body>
+<div class="bar"><h1>Snake</h1><div class="sc">Score <b id="s">0</b> &nbsp; Best <b id="b">0</b></div></div>
+<div class="wrap">
+  <canvas id="c" width="400" height="400" aria-label="Snake game board"></canvas>
+  <div class="ov" id="ov">
+    <h2 id="t">Snake khel shuru karo</h2>
+    <p id="m">Swipe ya arrow keys se chalao. Phal khao, khud se bacho.</p>
+    <div class="opts" id="opts">
+      <div class="row"><span>Level</span>
+        <button class="chip" data-diff="easy">Easy</button>
+        <button class="chip" data-diff="medium">Medium</button>
+        <button class="chip" data-diff="hard">Hard</button>
+      </div>
+      <div class="row"><span>Mode</span>
+        <button class="chip" data-mode="walls">Walls</button>
+        <button class="chip" data-mode="wrap">No walls</button>
+      </div>
+    </div>
+    <button id="go">Start game</button>
+  </div>
+</div>
+<div class="tools">
+  <button id="pz">⏸ Pause</button>
+  <button id="th">🎨 Theme</button>
+  <button id="sd">🔊 Sound</button>
+</div>
+<div class="pad" aria-label="Controls">
+  <button class="u" data-d="u" aria-label="Up">&#9650;</button>
+  <button class="l" data-d="l" aria-label="Left">&#9664;</button>
+  <button class="d" data-d="d" aria-label="Down">&#9660;</button>
+  <button class="r" data-d="r" aria-label="Right">&#9654;</button>
+</div>
+<p class="credit">Made by Arafat Khan</p>
+<script>
+(function(){
+var N=20,C=20,cv=document.getElementById('c'),x=cv.getContext('2d');
+var $=function(i){return document.getElementById(i)};
+var THEMES=[
+ {n:'Purple',bg:'#f3e9ff',board:'#e4d3fb',ink:'#2b1b52',snake:'#5b2fc9',head:'#3a1a94',food:'#ff5a7a',btn:'#2b1b52',btnink:'#ffffff',ovl:'rgba(243,233,255,.9)'},
+ {n:'Forest',bg:'#e6f4e0',board:'#cfe8c4',ink:'#1f3d1a',snake:'#2f8f3a',head:'#1b5e24',food:'#e8453c',btn:'#1f3d1a',btnink:'#ffffff',ovl:'rgba(230,244,224,.9)'},
+ {n:'Ocean',bg:'#e0f2fb',board:'#c4e3f5',ink:'#0d3350',snake:'#1f7fc4',head:'#0b4f85',food:'#ff8a3d',btn:'#0d3350',btnink:'#ffffff',ovl:'rgba(224,242,251,.9)'},
+ {n:'Sunset',bg:'#fff0e0',board:'#ffdcb8',ink:'#4a2310',snake:'#e2582b',head:'#a8350f',food:'#7b2ff7',btn:'#4a2310',btnink:'#ffffff',ovl:'rgba(255,240,224,.9)'},
+ {n:'Night',bg:'#1d1b3a',board:'#2a2757',ink:'#f1ecff',snake:'#ffd166',head:'#fff1c2',food:'#ff5a7a',btn:'#f1ecff',btnink:'#1d1b3a',ovl:'rgba(29,27,58,.9)'}
+];
+var LEVELS={easy:{b:180,m:100,k:3},medium:{b:150,m:65,k:4},hard:{b:110,m:45,k:3}};
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+var ti=+ls('snake-theme')||0,T=THEMES[ti]||THEMES[0];
+var diff=ls('snake-diff')||'medium',mode=ls('snake-mode')||'walls',sound=ls('snake-sound')!=='off';
+if(!LEVELS[diff])diff='medium';if(mode!=='walls'&&mode!=='wrap')mode='walls';
+var sn,dir,nd,food,score=0,best=0,timer,state='idle',ac=null;
+
+function applyTheme(){
+ T=THEMES[ti];var r=document.documentElement.style;
+ ['bg','board','ink','snake','head','food','btn','btnink','ovl'].forEach(function(k){r.setProperty('--'+k,T[k])});
+ $('th').textContent='🎨 '+T.n;ls('snake-theme',ti);
+ if(food)draw();
+}
+function loadBest(){best=+ls('snake-best-'+diff+'-'+mode)||0;$('b').textContent=best}
+function refreshChips(){
+ document.querySelectorAll('[data-diff]').forEach(function(b){b.classList.toggle('on',b.dataset.diff===diff)});
+ document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('on',b.dataset.mode===mode)});
+ $('sd').textContent=sound?'🔊 Sound':'🔇 Muted';
+}
+
+function beep(f,d,type,when){
+ if(!sound)return;
+ try{
+  if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+  if(ac.state==='suspended')ac.resume();
+  var o=ac.createOscillator(),g=ac.createGain(),t0=ac.currentTime+(when||0);
+  o.type=type||'square';o.frequency.value=f;
+  g.gain.setValueAtTime(.08,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+  o.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+d);
+ }catch(e){}
+}
+
+function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function place(){do{food={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)}}while(sn.some(function(p){return p.x===food.x&&p.y===food.y}))}
+function delay(){var l=LEVELS[diff];return Math.max(l.m,l.b-score*l.k)}
+
+function start(){
+ sn=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir=nd={x:1,y:0};score=0;$('s').textContent=0;
+ loadBest();place();state='run';$('ov').classList.add('hide');$('pz').textContent='⏸ Pause';
+ beep(520,.1,'triangle');draw();clearTimeout(timer);timer=setTimeout(tick,delay());
+}
+function pause(){
+ if(state!=='run')return;
+ state='pause';clearTimeout(timer);
+ $('t').textContent='Paused';$('m').textContent='Score: '+score;
+ $('opts').classList.add('hide');$('go').textContent='Resume';$('ov').classList.remove('hide');$('pz').textContent='▶ Resume';
+}
+function resume(){
+ if(state!=='pause')return;
+ state='run';$('ov').classList.add('hide');$('pz').textContent='⏸ Pause';
+ clearTimeout(timer);timer=setTimeout(tick,delay());
+}
+function over(){
+ state='over';
+ if(score>best){best=score;$('b').textContent=best;ls('snake-best-'+diff+'-'+mode,best)}
+ beep(300,.18,'sawtooth');beep(200,.18,'sawtooth',.16);beep(120,.3,'sawtooth',.32);
+ $('t').textContent='Game over';$('m').textContent='Score: '+score+'. Dobara try karo!';
+ $('opts').classList.remove('hide');$('go').textContent='Play again';$('ov').classList.remove('hide');$('pz').textContent='⏸ Pause';
+}
+function tick(){
+ if(state!=='run')return;
+ dir=nd;var h={x:sn[0].x+dir.x,y:sn[0].y+dir.y};
+ if(mode==='wrap'){h.x=(h.x+N)%N;h.y=(h.y+N)%N}
+ else if(h.x<0||h.y<0||h.x>=N||h.y>=N){draw();return over()}
+ if(sn.some(function(p){return p.x===h.x&&p.y===h.y})){draw();return over()}
+ sn.unshift(h);
+ if(h.x===food.x&&h.y===food.y){score++;$('s').textContent=score;beep(740,.08,'square');beep(988,.1,'square',.07);place()}else sn.pop();
+ draw();timer=setTimeout(tick,delay());
+}
+function draw(){
+ x.clearRect(0,0,400,400);
+ x.fillStyle=T.food;x.beginPath();x.arc(food.x*C+C/2,food.y*C+C/2,C/2-3,0,7);x.fill();
+ sn.forEach(function(p,i){x.fillStyle=i?T.snake:T.head;rr(p.x*C+1,p.y*C+1,C-2,C-2,i?6:9);x.fill()});
+}
+function turn(d){
+ var m={u:{x:0,y:-1},d:{x:0,y:1},l:{x:-1,y:0},r:{x:1,y:0}}[d];
+ if(m&&!(m.x===-dir.x&&m.y===-dir.y))nd=m;
+}
+
+document.addEventListener('keydown',function(e){
+ var k={ArrowUp:'u',w:'u',ArrowDown:'d',s:'d',ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r'}[e.key];
+ if(k){e.preventDefault();if(state==='run')turn(k);return}
+ if(e.key==='p'||e.key==='P'){state==='run'?pause():resume();return}
+ if((e.key===' '||e.key==='Enter')&&document.activeElement.tagName!=='BUTTON'){
+  e.preventDefault();
+  if(state==='run')pause();else if(state==='pause')resume();else start();
+ }
+});
+document.querySelectorAll('.pad button').forEach(function(b){b.addEventListener('pointerdown',function(e){e.preventDefault();if(state==='run')turn(b.dataset.d)})});
+var sx,sy;
+document.body.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+document.body.addEventListener('touchmove',function(e){
+ if(sx==null||state!=='run')return;
+ var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+ if(Math.abs(dx)>24||Math.abs(dy)>24){turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'));sx=e.touches[0].clientX;sy=e.touches[0].clientY}
+},{passive:true});
+
+document.querySelectorAll('[data-diff]').forEach(function(b){b.addEventListener('click',function(){diff=b.dataset.diff;ls('snake-diff',diff);refreshChips();loadBest()})});
+document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){mode=b.dataset.mode;ls('snake-mode',mode);refreshChips();loadBest()})});
+$('go').addEventListener('click',function(){state==='pause'?resume():start()});
+$('pz').addEventListener('click',function(){if(state==='run')pause();else if(state==='pause')resume()});
+$('th').addEventListener('click',function(){ti=(ti+1)%THEMES.length;applyTheme()});
+$('sd').addEventListener('click',function(){sound=!sound;ls('snake-sound',sound?'on':'off');refreshChips();if(sound)beep(660,.08,'triangle')});
+document.addEventListener('visibilitychange',function(){if(document.hidden)pause()});
+
+sn=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir=nd={x:1,y:0};food={x:14,y:10};
+applyTheme();refreshChips();loadBest();draw();
+})();
+</script>
+</body>
+</html>
